@@ -474,13 +474,26 @@ function next() {
   else { current++; }
   render();
 }
-function submit() {
-  const email = document.getElementById('email').value;
+async function submit() {
+  const emailEl = document.getElementById('email');
+  const email = emailEl.value;
   if (!email || !email.includes('@')) {
-    document.getElementById('email').style.borderColor = '#E24B4A';
-    document.getElementById('email').placeholder = 'Please enter a valid email';
+    emailEl.style.borderColor = '#E24B4A';
+    emailEl.placeholder = 'Please enter a valid email';
     return;
   }
+  const btn = document.querySelector('.btn-cta');
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+  const ri = getResult();
+  const r = results[ri];
+  try {
+    await fetch('https://formspree.io/f/xlgkzanl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email, saboteur_type: r.badge, result_title: r.title })
+    });
+  } catch(e) {}
   screen = 'thanks';
   render();
 }
