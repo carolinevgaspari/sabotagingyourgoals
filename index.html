@@ -245,7 +245,16 @@
     line-height: 1.6;
     margin-bottom: 1.25rem;
   }
-  .email-field {
+  .field-group { text-align: left; margin-bottom: 0.75rem; }
+  .field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green-dark);
+    margin-bottom: 5px;
+    letter-spacing: 0.02em;
+  }
+  .text-field {
     width: 100%;
     padding: 12px 14px;
     border: 1px solid var(--green-mid);
@@ -254,10 +263,10 @@
     font-family: 'DM Sans', sans-serif;
     background: var(--white);
     color: var(--text);
-    margin-bottom: 0.75rem;
     outline: none;
   }
-  .email-field:focus { border-color: var(--green); }
+  .text-field:focus { border-color: var(--green); }
+  .text-field.field-error { border-color: #E24B4A; }
   .btn-cta {
     width: 100%;
     background: var(--green);
@@ -270,6 +279,7 @@
     cursor: pointer;
     font-family: 'DM Sans', sans-serif;
     transition: background 0.15s;
+    margin-top: 0.5rem;
   }
   .btn-cta:hover { background: var(--green-deep); }
   .privacy-note { font-size: 12px; color: var(--green-deep); margin-top: 0.75rem; opacity: 0.7; }
@@ -449,9 +459,24 @@ function render() {
       <div class="cta-block">
         <h3 class="cta-title">Ready to stop guessing?</h3>
         <p class="cta-sub">Book a free 20-minute discovery call. No pitch — just a real conversation about what's in your way and what to do about it.</p>
-        <input class="email-field" type="email" id="email" placeholder="Your email address" />
+
+        <div class="field-group">
+          <label class="field-label" for="name">Full name</label>
+          <input class="text-field" type="text" id="name" placeholder="Your first & last name" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="email">Email address</label>
+          <input class="text-field" type="email" id="email" placeholder="you@example.com" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="phone">Phone number</label>
+          <input class="text-field" type="tel" id="phone" placeholder="(555) 555-5555" />
+        </div>
+
         <button class="btn-cta" onclick="submit()">Yes, book my free call →</button>
-        <p class="privacy-note">No spam, ever. Just one email to get your call scheduled.</p>
+        <p class="privacy-note">No spam, ever. Just used to get your call scheduled.</p>
       </div>
     `;
   } else if (screen === 'thanks') {
@@ -474,24 +499,57 @@ function next() {
   else { current++; }
   render();
 }
+
+function validateField(el, isValid) {
+  if (isValid) {
+    el.classList.remove('field-error');
+  } else {
+    el.classList.add('field-error');
+  }
+}
+
 async function submit() {
+  const nameEl = document.getElementById('name');
   const emailEl = document.getElementById('email');
-  const email = emailEl.value;
-  if (!email || !email.includes('@')) {
-    emailEl.style.borderColor = '#E24B4A';
-    emailEl.placeholder = 'Please enter a valid email';
+  const phoneEl = document.getElementById('phone');
+
+  const name = nameEl.value.trim();
+  const email = emailEl.value.trim();
+  const phone = phoneEl.value.trim();
+
+  // basic validation
+  const nameValid = name.length > 1;
+  const emailValid = email.includes('@') && email.includes('.');
+  // require at least 10 digits for a phone number
+  const phoneDigits = phone.replace(/\D/g, '');
+  const phoneValid = phoneDigits.length >= 10;
+
+  validateField(nameEl, nameValid);
+  validateField(emailEl, emailValid);
+  validateField(phoneEl, phoneValid);
+
+  if (!nameValid || !emailValid || !phoneValid) {
     return;
   }
+
   const btn = document.querySelector('.btn-cta');
   btn.textContent = 'Sending...';
   btn.disabled = true;
+
   const ri = getResult();
   const r = results[ri];
+
   try {
     const res = await fetch('https://formspree.io/f/xlgkzanl', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ email, saboteur_type: r.badge, result_title: r.title })
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        saboteur_type: r.badge,
+        result_title: r.title
+      })
     });
     const data = await res.json();
     if (!res.ok) {
